@@ -1,67 +1,93 @@
--- First Lets learn about graphs in haskell
+-- CORRECT PATHS GENERATING PROCESS --------------------------------------------
 
--- Our job is to make a program that takes input that represents a road system and print out what the shortest path across it is. Here's what the input would look like for this case:
+main_list = [["a", "b", "a-pe", "0.5"], ["a", "c", "a-pe", "0.6"], ["b", "d", "linha-567", "0.1"], ["c", "d", "a-pe", "0.5"], ["d", "e", "linha-567", "0.1"], ["c", "d", "uber", "0.9"]]
 
-  -- Road system input example∷
-    -- 50
-    -- 10
-    -- 30
-    -- 5
-    -- 90
-    -- 20
-    -- 40
-    -- 2
-    -- 25
-    -- 10
-    -- 8
-    -- 0
+transportList = [("linha-567", 0.6), ("uber", 0.4)]
 
-    -- Read each section like: Road A, Road B, crossing road.
-    -- To have it neatly fit into threes we say that there's a last crossing section that takes 0 minutes to drive.
+destiny_node = "e"
+source_node = "a"
 
-    -- we're going to solve this problem in three steps:
-      -- Forget Haskell for a minute and think about how we'd solve the problem by hand
-      -- Think about how we're going to represent our data in Haskell
-         -- One way is to think of the starting points and crossroads as nodes of a graph that point to other crossroads
-         -- If we imagine that the starting points actually point to each other with a road that has a length of one, we see that every crossroads (or node) points to the node on the other side and also to the next one on its side. Except for the last nodes, they just point to the other side.
+createEdgesList [] edges = edges
+createEdgesList (x:xs) edges
+  | edgeInEdgesList edges (src, dest) == False = createEdgesList xs (edges ++ [(src, dest, [])])
+  | otherwise = createEdgesList xs edges
+  where [src, dest, _, _] = x
 
--- data Node = Node Road Road | EndNode Road
--- data Road = Road Int Node
+edgeInEdgesList [] (src, dest) = False
+edgeInEdgesList (x:xs) (src, dest)
+  | x_src == src && x_dest == dest = True
+  | otherwise = edgeInEdgesList xs (src, dest)
+  where (x_src, x_dest, _) = x
 
-      -- Figure out how to operate on that data in Haskell so that we produce at a solution
+edge_list = createEdgesList main_list []
+
+groupEdges [] result = result
+groupEdges (x:xs) result = groupEdges xs (updateEdge result ((extractEdgeSrc x), (extractEdgeDest x)) (makeTuple x))
+
+extractEdgeSrc [src, _, _, _] = src
+extractEdgeDest [_, dest, _, _] = dest
+makeTuple [src, dest, transport, weight] = (src, dest, transport, weight)
+
+updateEdge [] e new = []
+updateEdge (x:xs) e new
+  | e_src == src && e_dest == dest = [(src, dest, edges ++ [new])] ++ updateEdge xs e new
+  | e_src /= src || e_dest /= dest = [x] ++ updateEdge xs e new
+  where (src, dest, edges) = x
+        (e_src, e_dest) = e
+
+grouped_edges = groupEdges main_list edge_list
+
+retrieveEdges [] result = result
+retrieveEdges (x:xs) result = retrieveEdges xs (result ++ [edges])
+  where (_, _, edges) = x
+
+combinations :: Int -> [a] -> [[a]]
+combinations 0 _ = [[]]
+combinations n xs = [ xs !! i : x | i <- [0..(length xs)-1]
+                                  , x <- combinations (n-1) (drop (i+1) xs) ]
+
+edges_by_group = retrieveEdges grouped_edges []
+
+number_of_slots = (countVertices edges_by_group 0)
+
+edges_combinations = combinations number_of_slots main_list
+
+removeDupsInCombinations [] acc = acc
+removeDupsInCombinations (x:xs) acc = removeDupsInCombinations xs (acc ++ [(removeDups x [])])
+
+-- Have to remove dups in each list
+removeDups [] acc = acc
+removeDups (x:xs) acc
+  | (verify x xs) == True = []
+  | (verify x xs) == False =  removeDups xs (acc ++ [x])
+
+verify x [] = False
+verify x (y:ys)
+  | x_src == y_src && x_dest == y_dest = True
+  | otherwise = verify x ys
+  where [x_src, x_dest, _, _] = x
+        [y_src, y_dest, _, _] = y
+
+correct_combinations = removeDupsInCombinations edges_combinations []
+
+createListOfCorrectPaths [] acc = acc
+createListOfCorrectPaths (x:xs) acc
+  | x == [] = createListOfCorrectPaths xs acc
+  | otherwise = createListOfCorrectPaths xs (acc ++ [x])
+
+correct_paths = createListOfCorrectPaths correct_combinations []
+
+cretePathOfTuples [] acc = acc
+cretePathOfTuples (x:xs) acc = cretePathOfTuples xs (acc ++ [(transformToTuple x [])])
+
+transformToTuple [] acc = acc
+transformToTuple (x:xs) acc = transformToTuple xs (acc ++ [(a, b, c ,d)])
+  where [a, b, c, d] = x
+
+tuple_correct_paths = cretePathOfTuples correct_paths []
 
 
-  -- matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-  --
-  -- getElement line colunm n matrix
-  --   | (line < n) && (colunm < n) = ((matrix !! line) !! colunm)
-  --   | otherwise = -1
-  --
-  --
-  -- my_tuple = (5, True)
-  -- first = fst (my_tuple)
-  -- second = snd (my_tuple)
-  --
-  --
-  -- main = print(getElement 0 1 3 matrix)
-
--- Create a simple weighted graph in haskell and do a djikstra
-
-  -- Create data type for edge [dest, weight]
-
-  -- Find a way to store those edges in a list
-
-    -- Graph = [[(dest, weight), (dest, weight), (dest, weight)],
-    --          [(dest, weight), (dest, weight), (dest, weight)],
-    --          [(dest, weight), (dest, weight), (dest, weight)]
-    --         ]
-
-    -- Dont forget to count the number of nodes
-
--- paths = [[src, dest, weight, type]]
-edges = [("ana", "b", "a-pe" , "0.1"), ("a", "c", "a-pe", "0.1"), ("b", "d", "a-pe", "0.1"), ("c", "d", "a-pe", "0.1"), ("a", "f", "a-pe", "0.1")]
-
-src_dest_vertices = ["a", "d"]
+-- GRAPH GENERATION PROCESS ----------------------------------------------------
 
 createNodesList [] nodes = nodes
 createNodesList (x:xs) nodes
@@ -97,7 +123,7 @@ addEdgesToGraph [] graph = graph
 addEdgesToGraph (e:es) graph = addEdgesToGraph es (updateGraph graph (extractSrc e) (extractEdge e))
 
 extractSrc (src, _, _, _) = src
-extractEdge (src, dest, transport , weight) = (dest, transport , weight)
+extractEdge (src, dest, transport , weight) = (src, dest, transport , weight)
 
 -- updateGraph :: [([Char], [([Char], [Char], [Char])])] -> [Char] -> ([Char], [Char], [Char]) -> [([Char], [([Char], [Char], [Char])])]
 updateGraph [] v new = []
@@ -106,248 +132,207 @@ updateGraph (x:xs) v new
   | v /= src = [x] ++ updateGraph xs v new
   where (src, adj) = x
 
--- ///////////////////////////////////////////////////////////////////////////
+edges = tuple_correct_paths !! 0
 
+createGraphs [] acc = acc
+createGraphs (x:xs) acc = createGraphs xs (acc ++ [createGraph x])
 
-number_of_vertices = (countVertices vertices 0)
-
-main_graph = addVerticesToGraph vertices []
-
-final_graph = addEdgesToGraph edges main_graph
-
--- main = print(final_graph)
-
--- ///////////////////////////////////////////////////////////////////////////
--- Given a list of [["src", "dest", "transport", "time"], ...], return a list of tuples like that
-  -- [("f", "h", "linha-567", "1.2"), ("f", "h", "a-pe", "12.3")]
-
--- Generate all combinations
-
--- a -> h
---    a-pe : 0.3
---    linha-370  : 0.2
---    uber: 0.1
+-- main_graph = addVerticesToGraph vertices []
 --
--- for every edge, if there are more than one way to traverse it, create a graph for each traverse method
+-- final_graph = addEdgesToGraph edges main_graph
 
-  -- How can we deal with the waiting time?
-    -- While generating the graph, keep track of flag variable of the satus of the choosen mehtod of parent
+createGraph list = (addEdgesToGraph list (addVerticesToGraph (createNodesList list []) []))
 
-main_list = [["a", "b", "a-pe", "0.4"], ["b", "a", "a-pe", "0.6"], ["f", "h", "linha-567", "1.2"], ["f", "h", "a-pe", "12.3"]]
-
-createEdgesList [] edges = edges
-createEdgesList (x:xs) edges
-  | edgeInEdgesList edges (src, dest) == False = createEdgesList xs (edges ++ [(src, dest, [])])
-  | otherwise = createEdgesList xs edges
-  where [src, dest, _, _] = x
-
-edgeInEdgesList [] (src, dest) = False
-edgeInEdgesList (x:xs) (src, dest)
-  | x_src == src && x_dest == dest = True
-  | otherwise = edgeInEdgesList xs (src, dest)
-  where (x_src, x_dest, _) = x
-
-edge_list = createEdgesList main_list []
-
--- [("a","b",[]),("b","a",[]),("f","h",[])]
-
-groupEdges [] result = result
-groupEdges (x:xs) result = groupEdges xs (updateEdge result ((extractEdgeSrc x), (extractEdgeDest x)) (makeTuple x))
-
-extractEdgeSrc [src, _, _, _] = src
-extractEdgeDest [_, dest, _, _] = dest
-makeTuple [src, dest, transport, weight] = (src, dest, transport, weight)
-
-updateEdge [] e new = []
-updateEdge (x:xs) e new
-  | e_src == src && e_dest == dest = [(src, dest, edges ++ [new])] ++ updateEdge xs e new
-  | e_src /= src || e_dest /= dest = [x] ++ updateEdge xs e new
-  where (src, dest, edges) = x
-        (e_src, e_dest) = e
-
-grouped_edges = groupEdges main_list edge_list
-
-retrieveEdges [] result = result
-retrieveEdges (x:xs) result = retrieveEdges xs (result ++ [edges])
-  where (_, _, edges) = x
-
-edges_by_group = retrieveEdges grouped_edges []
-
-number_of_slots = (countVertices edges_by_group 0)
-
-edges_combinations = combinations number_of_slots main_list
+final_graphs = (createGraphs tuple_correct_paths [])
 
 
-removeDupsInCombinations [] acc = acc
-removeDupsInCombinations (x:xs) acc = removeDupsInCombinations xs (acc ++ [(removeDups x [])])
+
+-- GENERATE A PRIORITY QUEUE FOR EACH GRAPH ------------------------------------
+
+-- MinHeap (consider upperBound because, when this upperbound for this node is the current lowest distance to travel, by either choosing it or a lower entry in the same array, you keep on running a consistent algorithm)
+
+createHeapNodes [] heap_nodes source = heap_nodes
+createHeapNodes (x:xs) heap_nodes source
+  |source == x = createHeapNodes xs (heap_nodes ++ [(x, 0.0,[])]) source
+  |otherwise = createHeapNodes xs (heap_nodes ++ [(x, 1/0, [])]) source
+
+-- Extract the vertex with mimimum distance value
+getMin [] minimal = minimal
+getMin (x:xs) minimal
+  | min_value >= x_value = getMin xs x
+  | min_value < x_value = getMin xs minimal
+  where (_, x_value, _) = x
+        (_, min_value, _) = minimal
+
+minimalist = getMin heapVertices ("", 0.0, [(0.0, "none", [("","","",0.0)])])
+
+removeMin [] vertex_to_remove acc = acc
+removeMin (x:xs) vertex_to_remove acc
+  | x /= vertex_to_remove = removeMin xs vertex_to_remove (acc ++ [x])
+  | otherwise = removeMin xs vertex_to_remove acc
 
 
--- Have to remove dups in each list
-removeDups [] acc = acc
-removeDups (x:xs) acc
-  | (verify x xs) == True = []
-  | (verify x xs) == False =  removeDups xs (acc ++ [x])
+heapVertices = createHeapNodes vertices [] source_node
+-- graph = final_graphs !! 0
 
-verify x [] = False
-verify x (y:ys)
-  | x_src == y_src && x_dest == y_dest = True
-  | otherwise = verify x ys
-  where [x_src, x_dest, _, _] = x
-        [y_src, y_dest, _, _] = y
+listOfHeapVertices [] acc = acc
+listOfHeapVertices (g:gs) acc = listOfHeapVertices gs (acc ++ [(createHeapNodes vertices [] source_node)])
 
--- [[(...), (...)], [(...)]]
+my_list_of_heapVertices = listOfHeapVertices final_graphs []
 
-correct_combinations = removeDupsInCombinations edges_combinations []
+dijkstraList [] graphs acc = acc
+dijkstraList (h:hs) (g:gs) acc = dijkstraList hs gs (acc ++ [(dijkstra h g ("", 0.0, [(0.0, "none", [("","","",0.0)])]))])
 
-createListOfCorrectPaths [] acc = acc
-createListOfCorrectPaths (x:xs) acc
-  | x == [] = createListOfCorrectPaths xs acc
-  | otherwise = createListOfCorrectPaths xs (acc ++ [x])
+result_list = dijkstraList my_list_of_heapVertices final_graphs []
 
-correct_paths = createListOfCorrectPaths correct_combinations []
+getBest [] lower lowest = lowest
+getBest (r:rs) lower lowest
+  | r_time < lower = getBest rs r_time (r_time, r_path)
+  | otherwise = getBest rs lower lowest
+  where (r_vertex, r_time, r_path) = r
 
--- removeDups :: [Int] -> [Int] -> [Int]
--- removeDups [] acc = acc
--- removeDups (x:xs) acc
---   | (verify x xs) == True = removeDups xs acc
---   | (verify x xs) == False =  removeDups xs (acc ++ [x])
+
+-- main = print(getBest result_list (1/0)  (0.0, [(0.0, "none", [("","","",0.0)])]))
+
+best = (getBest result_list (1/0)  (0.0, [(0.0, "none", [("","","",0.0)])]))
+
+best_time = getTime best
+
+getTime best = time
+  where (time, path) = best
+
+getPath path = path
+    where (time, path) = best
+
+bestPath = getPath best_time
+
+myFloatToStr :: Float -> String
+myFloatToStr x = show x
+
+getMainPath tuple = main_path
+  where [main_path] = tuple
 --
--- verify :: Int -> [Int] -> Bool
--- verify x [] = False
--- verify x (y:ys)
---   | x == y = True
---   | otherwise = verify x ys
+main_best_path = getMainPath bestPath
 
-public_transports = [["linha-567", "15.0"], ["linha-370", "12.0"]]
+getThePath tuple = main_path
+  where (_, _, main_path) = tuple
 
+the_path = getThePath main_best_path
 
--- for each public_transport
-  -- apply waitinTime algorithm for every path
+transformPathToString [] acc = acc
+transformPathToString (t:ts) acc = transformPathToString ts (acc ++ (myF src) ++ (myF mode))
+  where (src, _, mode, _) = t
 
--- [
--- [["a","b","a-pe","0.4"],["b","f","linha-567","0.6"],["f","h","linha-567","1.2"]],
--- [["a","b","a-pe","0.4"],["b","f","a-pe","0.6"],["f","h","a-pe","12.3"]]
--- ]
---
--- updatePublicTransportTimes [] paths = paths
--- updatePublicTransportTimes (x:xs) paths = updatePublicTransportTimes xs (verifyWaitingTime paths x)
---
---
--- verifyWaitingTime [] transport acc = acc
--- verifyWaitingTime (x:xs) transport acc = verifyWaitingTime xs transport (acc ++ (applyTime x transport))
---
--- applyTime (x:xs) transport last_mode =
+myF arg = arg ++ " "
 
--- Starting from the SOURCE-Vertex:
--- linear search for a src equals to destiny, until origin found.
-  -- If src is equal to previous destiny
-    -- If mode is equal -> Do Nothing
-    -- If mode is different -> toggle mode
-  -- Else
-    -- keep going
+final_path_string = transformPathToString the_path ""
 
-simple = [['c', 'd', '3', '0.4'], ['a', 'b', '4', '0.4'], ['c', 'a', '4', '0.1']]
-         -- -> [['a', 'b', '4', '0.6'], ['c', 'd', '3', '0.4'], ['b', 'c', '4', '0.1']]
+appendDestiny str dest = str ++ dest
 
+final_path_string_appended = appendDestiny final_path_string destiny_node
 
--- For every, edge search for paths using the current edge as start point
-  -- Apply waiting time algorithm if needed
+main = do
+       putStrLn(final_path_string_appended)
+       putStrLn(myFloatToStr best_time)
 
--- updateWaitingTime [] path = path
--- updateWaitingTime (x:xs) path = updateWaitingTime xs (path ++ [(verifyTimes x xs)]
---
--- verifyTimes x [] toggle_mode = []
--- verifyTimes x (y:ys) toggle_mode
---   |
---   | otherwise
---   where [x_src, x_dest, x_transport, x_time] = x
---         [y_src, y_dest, y_transport, y_time] = y
+-- Traverse through all adjacent vertices of u and update their distance values
+dijkstra [] graph lastRemoved = lastRemoved
+dijkstra heapVertices graph lastRemoved
+  | vertex == destiny_node = current_min
+  | otherwise = dijkstra (removeMin updated_heap_final (current_min) []) graph current_min
+  where current_min = (getMin heapVertices ("", 1/0,[]))
+        (vertex, elapsed_time, paths) = current_min
+        adjacents = (getAdjacents graph current_min)
+        adjacents_converted = (convertEdges adjacents [])
+        updated_heap = (updateAdjacents adjacents_converted heapVertices current_min)
+        updated_heap_final = (fixHeapTimes updated_heap [])
+
+-- main = print(dijkstra heapVertices ("", 0.0, [(0.0, "none", [("","","",0.0)])]))
+
+getAdjacents [] current_min = []
+getAdjacents (x:xs) current_min
+  | vertex == x_vertex = x_edges
+  | otherwise = getAdjacents xs current_min
+  where (vertex, elapsed_time, paths) = current_min
+        (x_vertex, x_edges) = x
+
+convertEdges [] acc = acc
+convertEdges (e:es) acc = convertEdges es (acc ++ [(e_src, e_dest, e_mode, (convertStringToFloat e_time))])
+  where (e_src, e_dest, e_mode, e_time) = e
 
 
+filterNumberFromString :: String -> String
+filterNumberFromString s =
+    let allowedString = ['0'..'9'] ++ ['.', ',']
+        toPoint n
+            | n == ',' = '.'
+            | otherwise = n
+
+        f = filter (`elem` allowedString) s
+        d = map toPoint f
+    in d
 
 
-
-main = print(correct_paths)
-
-
-
-
-
--- apply waiting time algorithm
-  -- OBS: dont forget to observe changing of transport mode
--- For every list in correct_paths with waiting times for each public transport
--- transform them into simple graphs
--- Apply djikstra and store (shortestPath and min-time)
--- take the lowest time and print
+convertStringToFloat :: String -> Float
+convertStringToFloat s =
+    let betterString = filterNumberFromString s
+        asFloat = read betterString :: Float
+    in asFloat
 
 
+fixHeapTimes [] acc = acc
+fixHeapTimes (h:hs) acc = fixHeapTimes hs (acc ++ [fixHeapTime h])
 
--- [
---
--- [["a","b","a-pe","0.4"],["b","a","a-pe","0.6"],["f","h","linha-567","1.2"]],
--- [["a","b","a-pe","0.4"],["b","a","a-pe","0.6"],["f","h","a-pe","12.3"]],
--- [["a","b","a-pe","0.4"],["f","h","linha-567","1.2"],["f","h","a-pe","12.3"]],
--- [["b","a","a-pe","0.6"],["f","h","linha-567","1.2"],["f","h","a-pe","12.3"]]
---
--- ]
+fixHeapTime vertex
+  | paths /= [] = (v_src, (getLargestTime paths 0.0), paths)
+  | otherwise = (v_src, v_time, paths)
+  where (v_src, v_time, paths) = vertex
 
--- [("a","b",[("a","b","a-pe","0.4")]),("b","a",[("b","a","a-pe","0.6")]),("f","h",[("f","h","linha-567","1.2"),("f","h","a-pe","12.3")])]
-
--- [[("a","b","a-pe","0.4")],[("b","a","a-pe","0.6")],[("f","h","linha-567","1.2"),("f","h
--- ","a-pe","12.3")]]
-
--- Create all combinations
+getLargestTime [] large = large
+getLargestTime (x:xs) large
+  | time > large = getLargestTime xs time
+  | otherwise = getLargestTime xs large
+  where (time, _, _) = x
 
 
--- count number of generated arrays.
+updateAdjacents [] heapVertices current_min = heapVertices
+updateAdjacents (a:as) heapVertices current_min = updateAdjacents as (updateAdjacent a heapVertices current_min []) current_min
 
-combinations :: Int -> [a] -> [[a]]
-combinations 0 _ = [[]]
-combinations n xs = [ xs !! i : x | i <- [0..(length xs)-1]
-                                  , x <- combinations (n-1) (drop (i+1) xs) ]
+updateAdjacent edge [] current_min acc = acc
+updateAdjacent edge (v:vs) current_min acc
+  | e_dest == v_vertex = updateAdjacent edge vs current_min (acc ++ [(updatePaths edge v current_min)])
+  | otherwise = updateAdjacent edge vs current_min (acc ++ [v])
+  where (e_vertex, e_dest, e_mode, e_time) = edge
+        (v_vertex, v_elapsed_time, v_paths) = v
 
+updatePaths edge vertex current_min = newPath
+  where (v_vertex, v_elapsed_time, v_paths) = vertex
+        newPath = (v_vertex, v_elapsed_time, v_paths ++ [(addPath edge current_min)])
 
-
--- Create a new vector for each list of edges that start and end at the same vertices
-
-
--- generate all combinations
--- apply waiting-time algorithm for each combination
--- create simple graphs for each combiantion
--- apply djikstra storing shortest-path and time
--- decide and print.
-
-
-
--- How do i make a combination?
-  -- Generate all combinations with composite lists as an element
-    -- Now, for each generated combination, generate a list
+addPath edge current_min
+  | time_to_add == 1/0 = (fixing_time, e_mode, bestPath)
+  | otherwise = (time_to_add, e_mode, bestPath)
+  where (e_src, e_dest, e_mode, e_time) = edge
+        (vertex, elapsed_time, paths) = current_min
+        (time_to_add, bestPath) = (getBestPathFromCurrentMin paths edge (1/0) [edge])
+        fixing_time = (calcTime transportList e_mode e_time)
 
 
+getBestPathFromCurrentMin [] edge lower lowest = (lower, lowest)
+getBestPathFromCurrentMin (p:ps) edge lower lowest
+  | p_mode == e_mode && time_sum < lower = getBestPathFromCurrentMin ps edge time_sum (p_paths ++ [edge])
 
--- Generate lists for every element in an array∷
+  | p_mode /= e_mode && time_fix_sum < lower = getBestPathFromCurrentMin ps edge time_fix_sum ((p_paths ++ [(e_src, e_dest, e_mode, (calcTime transportList e_mode e_time))]))
 
+  | otherwise = getBestPathFromCurrentMin ps edge lower lowest
 
--- [
--- [("f", "h", "a-pe", "12.3"), ("a", "b", "a-pe", "0.4"), ("b", "a", "a-pe", "0.6")],
--- [("f", "h", "linha-567", "1.2"), ("a", "f", "a-pe", "0.4"), ("b", "a", "a-pe", "0.6")]
--- ]
+  where (p_time, p_mode, p_paths) = p
+        (e_src, e_dest, e_mode, e_time) = edge
+        time_sum = p_time + e_time
+        time_fix_sum = p_time + (calcTime transportList e_mode e_time)
 
--- How can we deal with the waiting time?
-  -- Use mode flag as acc in your recursion to decide to include cost of waiting or not
-
-
-
-
-
-
-
-
-  -- In order to print the path with their choices of transport we have to store the transport type at parents[] as  (parent, 'trasnport-type')
-
-
--- Second Lets define how our graph is going to be created
-
--- Third Define how can we adapt djikstra to our context
-
--- Code first attempt
+calcTime [] e_mode e_time = e_time
+calcTime (t:ts) e_mode e_time
+  | mode == e_mode = e_time + t_time
+  | otherwise = calcTime ts e_mode e_time
+  where (mode, t_time) = t

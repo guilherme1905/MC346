@@ -1,0 +1,57 @@
+//TESTE NA MÃO
+
+-- min1 = ("a",0.0,[])
+--
+-- adj = getAdjacents graph min1
+--
+-- adj2 = convertEdges adj []
+--
+-- heap = updateAdjacents adj2 heapVertices min1
+--
+-- heap_final = fixHeapTimes heap []
+--
+-- heap_removed = removeMin heap_final min1 []
+--
+-- min2 = (getMin heap_removed ("", 1/0,[]))
+-- --
+-- adj_b = convertEdges (getAdjacents graph min2) []
+-- --
+-- heapb = updateAdjacents adj_b heap_removed min2
+-- --
+-- heapb_final = fixHeapTimes heapb []
+
+
+-- heap_removedx = removeMin heapb_final min2 []
+--
+-- minx = (getMin heap_removedx ("", 1/0,[]))
+-- -- --
+-- adj_bx = convertEdges (getAdjacents graph minx) []
+-- -- --
+-- heapbx = updateAdjacents adj_bx heap_removedx minx
+-- -- --
+-- heapb_finalx = fixHeapTimes heapbx []
+--
+--
+--
+-- heap_removedz = removeMin heapb_finalx minx []
+--
+-- minz = (getMin heap_removedz ("", 1/0,[]))
+-- -- -- --
+-- adj_bz = convertEdges (getAdjacents graph minz) []
+-- -- -- --
+-- heapbz = updateAdjacents adj_bz heap_removedz minz
+-- -- -- --
+-- heapb_finalz = fixHeapTimes heapbz []
+--
+--
+--
+--
+-- heap_removed9 = removeMin heapb_finalz minz []
+--
+-- min9 = (getMin heap_removed9 ("", 1/0,[]))
+
+-- adj_bz = convertEdges (getAdjacents graph minz) []
+-- -- -- --
+-- heapbz = updateAdjacents adj_bz heap_removedz minz
+-- -- -- --
+-- heapb_finalz = fixHeapTimes heapbz []

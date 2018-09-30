@@ -45,8 +45,79 @@ main = do
           where [name, time] = t
 
         transportList = getTransport list2 []
-        
-        correct_paths = [main_list]
+
+        createEdgesList [] edges = edges
+        createEdgesList (x:xs) edges
+          | edgeInEdgesList edges (src, dest) == False = createEdgesList xs (edges ++ [(src, dest, [])])
+          | otherwise = createEdgesList xs edges
+          where [src, dest, _, _] = x
+
+        edgeInEdgesList [] (src, dest) = False
+        edgeInEdgesList (x:xs) (src, dest)
+          | x_src == src && x_dest == dest = True
+          | otherwise = edgeInEdgesList xs (src, dest)
+          where (x_src, x_dest, _) = x
+
+        edge_list = createEdgesList main_list []
+
+        groupEdges [] result = result
+        groupEdges (x:xs) result = groupEdges xs (updateEdge result ((extractEdgeSrc x), (extractEdgeDest x)) (makeTuple x))
+
+        extractEdgeSrc [src, _, _, _] = src
+        extractEdgeDest [_, dest, _, _] = dest
+        makeTuple [src, dest, transport, weight] = (src, dest, transport, weight)
+
+        updateEdge [] e new = []
+        updateEdge (x:xs) e new
+          | e_src == src && e_dest == dest = [(src, dest, edges ++ [new])] ++ updateEdge xs e new
+          | e_src /= src || e_dest /= dest = [x] ++ updateEdge xs e new
+          where (src, dest, edges) = x
+                (e_src, e_dest) = e
+
+        grouped_edges = groupEdges main_list edge_list
+
+        retrieveEdges [] result = result
+        retrieveEdges (x:xs) result = retrieveEdges xs (result ++ [edges])
+          where (_, _, edges) = x
+
+        combinations :: Int -> [a] -> [[a]]
+        combinations 0 _ = [[]]
+        combinations n xs = [ xs !! i : x | i <- [0..(length xs)-1]
+                                          , x <- combinations (n-1) (drop (i+1) xs) ]
+
+        edges_by_group = retrieveEdges grouped_edges []
+
+        number_of_slots = (countVertices edges_by_group 0)
+
+        edges_combinations = combinations number_of_slots main_list
+
+        removeDupsInCombinations [] acc = acc
+        removeDupsInCombinations (x:xs) acc = removeDupsInCombinations xs (acc ++ [(removeDups x [])])
+
+        -- Have to remove dups in each list
+        removeDups [] acc = acc
+        removeDups (x:xs) acc
+          | (verify x xs) == True = []
+          | (verify x xs) == False =  removeDups xs (acc ++ [x])
+
+        verify x [] = False
+        verify x (y:ys)
+          | x_src == y_src && x_dest == y_dest = True
+          | otherwise = verify x ys
+          where [x_src, x_dest, _, _] = x
+                [y_src, y_dest, _, _] = y
+
+        correct_combinations = removeDupsInCombinations edges_combinations []
+
+        createListOfCorrectPaths [] acc = acc
+        createListOfCorrectPaths (x:xs) acc
+          | x == [] = createListOfCorrectPaths xs acc
+          | otherwise = createListOfCorrectPaths xs (acc ++ [x])
+
+
+        ROLDAWODAWFIOAWJFIOJAWODIJAWIODJAWIODAJW 12635621367278321983
+
+        correct_paths = createListOfCorrectPaths correct_combinations []
 
         cretePathOfTuples [] acc = acc
         cretePathOfTuples (x:xs) acc = cretePathOfTuples xs (acc ++ [(transformToTuple x [])])
@@ -315,5 +386,17 @@ main = do
           | otherwise = calcTime ts e_mode e_time
           where (mode, t_time) = t
 
+    -- print(list1)
+    -- print(list2)
+    -- print(list3)
+    -- print(transportList)
+    -- print(number_of_slots)
+    -- print(edges_combinations)
+    -- print("Rola")
+    -- print(result_list)
+    -- print("Rola")
+    -- print(best)
+    -- print("Rola")
+    -- print(bestPath)
     putStrLn(final_path_string_appended)
     putStrLn(myFloatToStr best_time)
